@@ -115,13 +115,21 @@ def download_small(output_dir: str):
 # LARGE: Wikipedia dump (~22GB compressed → ~80GB text)
 # ============================================================
 
-WIKIPEDIA_URL = (
+# Full dump (~22GB compressed → ~80GB text)
+WIKIPEDIA_FULL_URL = (
     "https://dumps.wikimedia.org/enwiki/latest/"
     "enwiki-latest-pages-articles.xml.bz2"
 )
 
+# Partial dumps (~1-2GB compressed each, ~4-6GB text)
+# Wikimedia splits articles into chunks: articles1.xml-*, articles2.xml-*, etc.
+WIKIPEDIA_PARTIAL_URLS = [
+    "https://dumps.wikimedia.org/enwiki/latest/"
+    "enwiki-latest-pages-articles1.xml-p1p41242.bz2",
+]
 
-def download_large(output_dir: str):
+
+def download_large(output_dir: str, max_size_gb: float = 0):
     """
     Download English Wikipedia and convert to our format.
     Streams bz2-compressed XML — never loads full file into memory.
@@ -135,16 +143,23 @@ def download_large(output_dir: str):
         print(f"Corpus already exists: {corpus_path} ({size / (1024**3):.1f} GB)")
         return
 
-    # Download (22GB — this will take a while)
+    # Choose dump: partial (~1.5GB) if size-limited, full (~22GB) otherwise
+    if max_bytes and max_bytes <= 10 * 1024**3:
+        url = WIKIPEDIA_PARTIAL_URLS[0]
+        print(f"Using partial Wikipedia dump (~1.5GB download for ≤{max_size_gb}GB text)")
+    else:
+        url = WIKIPEDIA_FULL_URL
+        print("Using full Wikipedia dump (~22GB download)")
+
     if not os.path.exists(dump_path):
-        print("WARNING: Wikipedia dump is ~22GB compressed. Download will take time.")
-        print("You can also download manually:")
-        print(f"  wget {WIKIPEDIA_URL} -O {dump_path}")
-        print()
-        download_file(WIKIPEDIA_URL, dump_path)
+        download_file(url, dump_path)
 
     # Stream-parse XML from bz2
-    print("Parsing Wikipedia XML (streaming, low memory)...")
+    max_bytes = int(max_size_gb * 1024**3) if max_size_gb > 0 else 0
+    if max_bytes:
+        print(f"Parsing Wikipedia XML (limit: {max_size_gb} GB)...")
+    else:
+        print("Parsing Wikipedia XML (full dump, streaming, low memory)...")
     doc_count = 0
     bytes_written = 0
 
@@ -186,8 +201,16 @@ def download_large(output_dir: str):
                                     gb = bytes_written / (1024**3)
                                     print(f"  {doc_count:,} articles, {gb:.2f} GB")
 
+                                # Stop if we hit the size limit
+                                if max_bytes and bytes_written >= max_bytes:
+                                    print(f"Reached {max_size_gb} GB limit, stopping.")
+                                    break
+
                     # Free memory — critical for streaming large XML
                     elem.clear()
+
+                    if max_bytes and bytes_written >= max_bytes:
+                        break
 
     size = os.path.getsize(corpus_path)
     print(f"Done: {doc_count:,} articles, {size / (1024**3):.2f} GB")
@@ -220,6 +243,12 @@ def main():
         default="./data/input",
         help="Output directory",
     )
+    parser.add_argument(
+        "--max-size-gb",
+        type=float,
+        default=0,
+        help="Stop after N GB of text (0 = no limit). Only for 'large' dataset.",
+    )
     args = parser.parse_args()
 
     t_start = time.time()
@@ -227,7 +256,7 @@ def main():
     if args.dataset == "small":
         download_small(args.output)
     else:
-        download_large(args.output)
+        download_large(args.output, max_size_gb=args.max_size_gb)
 
     elapsed = time.time() - t_start
     print(f"Total time: {elapsed:.0f}s")

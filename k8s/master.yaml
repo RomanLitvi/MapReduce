@@ -9,6 +9,14 @@ spec:
   template:
     spec:
       restartPolicy: OnFailure
+      # Init container downloads data BEFORE master starts
+      initContainers:
+        - name: download-data
+          image: litvinchukroman/mapreduce-index:latest
+          command: ["python", "download_data.py", "--dataset", "large", "--max-size-gb", "2", "--output", "/data/input"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
       containers:
         - name: master
           image: litvinchukroman/mapreduce-index:latest
