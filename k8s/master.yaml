@@ -5,7 +5,7 @@ metadata:
   name: mapreduce-master
   namespace: mapreduce
 spec:
-  backoffLimit: 2
+  backoffLimit: 6
   template:
     spec:
       restartPolicy: OnFailure

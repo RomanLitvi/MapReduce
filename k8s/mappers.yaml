@@ -7,8 +7,8 @@ metadata:
   namespace: mapreduce
 spec:
   # completions: not set — workers self-terminate when queue is empty
-  parallelism: 8  # 8 concurrent mapper pods (tune based on cluster size)
-  backoffLimit: 3
+  parallelism: 3  # fits in 12GB minikube (3 × 1.5Gi = 4.5Gi)
+  backoffLimit: 6
   template:
     metadata:
       labels:
@@ -30,14 +30,14 @@ spec:
             - name: NUM_REDUCERS
               value: "32"
             - name: COMBINER_FLUSH_SIZE
-              value: "500000"
+              value: "200000"
           resources:
             requests:
-              memory: "2Gi"    # Needs RAM for in-mapper combiner
-              cpu: "1"
+              memory: "512Mi"
+              cpu: "500m"
             limits:
-              memory: "4Gi"
-              cpu: "2"
+              memory: "1536Mi"
+              cpu: "1"
           volumeMounts:
             - name: data
               mountPath: /data

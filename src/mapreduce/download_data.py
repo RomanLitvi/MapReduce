@@ -144,6 +144,7 @@ def download_large(output_dir: str, max_size_gb: float = 0):
         return
 
     # Choose dump: partial (~1.5GB) if size-limited, full (~22GB) otherwise
+    max_bytes = int(max_size_gb * 1024**3) if max_size_gb > 0 else 0
     if max_bytes and max_bytes <= 10 * 1024**3:
         url = WIKIPEDIA_PARTIAL_URLS[0]
         print(f"Using partial Wikipedia dump (~1.5GB download for ≤{max_size_gb}GB text)")
@@ -155,7 +156,6 @@ def download_large(output_dir: str, max_size_gb: float = 0):
         download_file(url, dump_path)
 
     # Stream-parse XML from bz2
-    max_bytes = int(max_size_gb * 1024**3) if max_size_gb > 0 else 0
     if max_bytes:
         print(f"Parsing Wikipedia XML (limit: {max_size_gb} GB)...")
     else:
