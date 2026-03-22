@@ -186,14 +186,17 @@ Two file reads instead of scanning the entire index.
 │   ├── master.py              # Coordinator: split input, manage phases via Redis
 │   ├── local_runner.py        # Single-node runner for testing without k8s
 │   ├── download_data.py       # Download Wikipedia / 20 Newsgroups
-│   └── generate_test_data.py  # Generate synthetic test corpus
+│   ├── generate_test_data.py  # Generate synthetic test corpus
+│   ├── verify_index.py        # Correctness verification (brute-force comparison)
+│   └── stats.py               # Real-time progress monitor and final report
 ├── k8s/
 │   ├── namespace.yaml         # mapreduce namespace
 │   ├── storage.yaml           # PersistentVolumeClaim (ReadWriteMany)
 │   ├── redis.yaml             # Redis deployment + service
 │   ├── master.yaml            # Master job (with init container for data download)
 │   ├── mappers.yaml           # Mapper job (parallel pods)
-│   └── reducers.yaml          # Reducer job (parallel pods)
+│   ├── reducers.yaml          # Reducer job (parallel pods)
+│   └── stats.yaml             # Stats monitor job
 ├── .github/workflows/
 │   └── ci.yaml                # CI: lint + multi-platform Docker build (amd64/arm64)
 ├── Dockerfile                 # Multi-role image (master/mapper/reducer)
@@ -268,6 +271,26 @@ kubectl -n mapreduce run reader --rm -it --restart=Never \
     }
   }'
 
+# Copy index to local machine
+kubectl -n mapreduce run copier --image=busybox --restart=Never \
+  --overrides='{
+    "spec": {
+      "containers": [{
+        "name": "copier",
+        "image": "busybox",
+        "command": ["sleep", "3600"],
+        "volumeMounts": [{"name": "data", "mountPath": "/data"}]
+      }],
+      "volumes": [{
+        "name": "data",
+        "persistentVolumeClaim": {"claimName": "mapreduce-data"}
+      }]
+    }
+  }'
+kubectl -n mapreduce cp copier:/data/output ./index-output
+kubectl -n mapreduce cp copier:/data/input ./index-input
+kubectl -n mapreduce delete pod copier
+
 # Cleanup
 kubectl delete namespace mapreduce
 ```
@@ -298,6 +321,67 @@ Edit `k8s/master.yaml` init container command to remove the `--max-size-gb` flag
     ├── index-0000                 ← final inverted index, shard 0
     ├── index-0001                 ← shard 1
     └── ...index-0031              ← shard 31
+```
+
+## Verification
+
+The `verify_index.py` script validates correctness by building a naive brute-force index from the original documents and comparing every entry against the MapReduce output.
+
+What it checks:
+
+| Check | Catches |
+|---|---|
+| All terms present | Mapper skipped a chunk or line |
+| No extra terms | Bug in tokenization or partitioning |
+| doc_ids match | Shuffle lost data or reducer missed a file |
+| Term frequencies match | Combiner incorrectly aggregated the ones |
+| No duplicates across shards | Hash partitioning broken |
+
+### Run locally
+
+```bash
+python src/mapreduce/verify_index.py --input ./data/input --index ./data/output
+```
+
+### Run in Kubernetes
+
+```bash
+kubectl -n mapreduce run verify --rm -it --restart=Never \
+  --image=litvinchukroman/mapreduce-index:latest \
+  --overrides='{
+    "spec": {
+      "containers": [{
+        "name": "verify",
+        "image": "litvinchukroman/mapreduce-index:latest",
+        "command": ["python", "verify_index.py", "--input", "/data/input", "--index", "/data/output"],
+        "volumeMounts": [{"name": "data", "mountPath": "/data"}]
+      }],
+      "volumes": [{
+        "name": "data",
+        "persistentVolumeClaim": {"claimName": "mapreduce-data"}
+      }]
+    }
+  }'
+```
+
+Expected output:
+```
+============================================================
+VERIFYING INVERTED INDEX CORRECTNESS
+============================================================
+
+Step 1: Building naive (brute-force) index...
+Naive index: 21,059 docs, 187,432 unique terms
+
+Step 2: Reading MapReduce index...
+MR index:    187,432 unique terms
+
+Step 3: Comparing...
+
+============================================================
+  PASSED — MapReduce index is CORRECT
+  Verified 187,432 terms across all documents
+============================================================
 ```
 
 ## Test Collections

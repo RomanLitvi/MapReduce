@@ -1,0 +1,29 @@
+# Stats monitor — run alongside MapReduce to watch progress in real time
+# Usage: kubectl apply -f k8s/stats.yaml && kubectl -n mapreduce logs -f job/mapreduce-stats
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mapreduce-stats
+  namespace: mapreduce
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        role: stats
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: stats
+          image: litvinchukroman/mapreduce-index:latest
+          command: ["python", "stats.py", "--interval", "2"]
+          env:
+            - name: MR_REDIS_HOST
+              value: "redis"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+            limits:
+              memory: "128Mi"
+              cpu: "200m"
