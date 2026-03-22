@@ -1,0 +1,5 @@
+k8s/
+*.iml
+.idea/
+__pycache__/
+*.pyc

@@ -1,0 +1,47 @@
+# Mapper workers — parallelism controls how many run simultaneously
+# Each pod pulls tasks from the Redis queue independently
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mapreduce-mappers
+  namespace: mapreduce
+spec:
+  # completions: not set — workers self-terminate when queue is empty
+  parallelism: 8  # 8 concurrent mapper pods (tune based on cluster size)
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        role: mapper
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mapper
+          image: mapreduce-index:latest
+          env:
+            - name: ROLE
+              value: "mapper"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: INPUT_DIR
+              value: "/data/input"
+            - name: INTERMEDIATE_DIR
+              value: "/data/intermediate"
+            - name: NUM_REDUCERS
+              value: "32"
+            - name: COMBINER_FLUSH_SIZE
+              value: "500000"
+          resources:
+            requests:
+              memory: "2Gi"    # Needs RAM for in-mapper combiner
+              cpu: "1"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mapreduce-data

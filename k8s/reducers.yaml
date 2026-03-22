@@ -1,0 +1,45 @@
+# Reducer workers — each processes one partition of the inverted index
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mapreduce-reducers
+  namespace: mapreduce
+spec:
+  parallelism: 8  # 8 concurrent reducer pods
+  backoffLimit: 3
+  template:
+    metadata:
+      labels:
+        role: reducer
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: reducer
+          image: mapreduce-index:latest
+          env:
+            - name: ROLE
+              value: "reducer"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: INTERMEDIATE_DIR
+              value: "/data/intermediate"
+            - name: OUTPUT_DIR
+              value: "/data/output"
+            - name: NUM_REDUCERS
+              value: "32"
+            - name: MERGE_BUFFER_SIZE
+              value: "8388608"  # 8MB read buffer
+          resources:
+            requests:
+              memory: "2Gi"    # Needs RAM for k-way merge heap
+              cpu: "1"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mapreduce-data

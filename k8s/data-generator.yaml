@@ -1,0 +1,29 @@
+# Job to generate test data (run once before indexing)
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-generator
+  namespace: mapreduce
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: generator
+          image: mapreduce-index:latest
+          command: ["python", "generate_test_data.py", "--size-gb", "80", "--output", "/data/input/corpus.txt"]
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "1"
+            limits:
+              memory: "1Gi"
+              cpu: "2"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mapreduce-data

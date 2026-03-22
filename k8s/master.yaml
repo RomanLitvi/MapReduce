@@ -1,0 +1,43 @@
+# Master — splits input, coordinates map and reduce phases
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mapreduce-master
+  namespace: mapreduce
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: master
+          image: mapreduce-index:latest
+          env:
+            - name: ROLE
+              value: "master"
+            - name: REDIS_HOST
+              value: "redis"
+            - name: INPUT_DIR
+              value: "/data/input"
+            - name: INTERMEDIATE_DIR
+              value: "/data/intermediate"
+            - name: OUTPUT_DIR
+              value: "/data/output"
+            - name: CHUNK_SIZE_BYTES
+              value: "67108864"  # 64MB
+            - name: NUM_REDUCERS
+              value: "32"
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: mapreduce-data
