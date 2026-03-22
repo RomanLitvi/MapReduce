@@ -19,7 +19,7 @@ spec:
           env:
             - name: ROLE
               value: "reducer"
-            - name: REDIS_HOST
+            - name: MR_REDIS_HOST
               value: "redis"
             - name: INTERMEDIATE_DIR
               value: "/data/intermediate"

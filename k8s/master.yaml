@@ -23,7 +23,7 @@ spec:
           env:
             - name: ROLE
               value: "master"
-            - name: REDIS_HOST
+            - name: MR_REDIS_HOST
               value: "redis"
             - name: INPUT_DIR
               value: "/data/input"

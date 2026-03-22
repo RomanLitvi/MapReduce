@@ -4,8 +4,8 @@ MapReduce configuration for inverted index building.
 import os
 
 # Redis connection
-REDIS_HOST = os.getenv("REDIS_HOST", "redis")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
+REDIS_HOST = os.getenv("MR_REDIS_HOST", "redis")
+REDIS_PORT = int(os.getenv("MR_REDIS_PORT", "6379"))
 
 # Storage paths (shared NFS volume in k8s)
 INPUT_DIR = os.getenv("INPUT_DIR", "/data/input")
