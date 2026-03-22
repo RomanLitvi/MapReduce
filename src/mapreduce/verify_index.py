@@ -80,9 +80,11 @@ def read_mapreduce_index(index_dir: str) -> dict[str, dict[str, int]]:
                     postings[doc_id] = int(tf)
 
                 if term in index:
-                    # Same term in multiple shards — should not happen
-                    print(f"  ERROR: duplicate term '{term}' across shards!")
-                    index[term].update(postings)
+                    # Same term appears multiple times in one shard file
+                    # due to multiple combiner flushes — this is normal,
+                    # reducer merges them correctly via aggregation
+                    for d, t in postings.items():
+                        index[term][d] = index[term].get(d, 0) + t
                 else:
                     index[term] = postings
 

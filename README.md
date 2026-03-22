@@ -346,22 +346,26 @@ python src/mapreduce/verify_index.py --input ./data/input --index ./data/output
 ### Run in Kubernetes
 
 ```bash
-kubectl -n mapreduce run verify --rm -it --restart=Never \
-  --image=litvinchukroman/mapreduce-index:latest \
-  --overrides='{
-    "spec": {
-      "containers": [{
-        "name": "verify",
-        "image": "litvinchukroman/mapreduce-index:latest",
-        "command": ["python", "verify_index.py", "--input", "/data/input", "--index", "/data/output"],
-        "volumeMounts": [{"name": "data", "mountPath": "/data"}]
-      }],
-      "volumes": [{
-        "name": "data",
-        "persistentVolumeClaim": {"claimName": "mapreduce-data"}
-      }]
-    }
-  }'
+kubectl -n mapreduce run verify --restart=Never \
+    --image=litvinchukroman/mapreduce-index:latest \
+    --overrides='{
+      "spec": {
+        "containers": [{
+          "name": "verify",
+          "image": "litvinchukroman/mapreduce-index:latest",
+          "command": ["python", "verify_index.py", "--input", "/data/input", "--index", "/data/output"],
+          "volumeMounts": [{"name": "data", "mountPath": "/data"}]
+        }],
+        "volumes": [{
+          "name": "data",
+          "persistentVolumeClaim": {"claimName": "mapreduce-data"}
+        }]
+      }
+    }'
+
+  # Wait and watch logs 
+  kubectl -n mapreduce wait --for=condition=Ready=false pod/verify --timeout=120s
+  kubectl -n mapreduce logs verify
 ```
 
 Expected output:
