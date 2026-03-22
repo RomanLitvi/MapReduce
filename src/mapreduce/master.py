@@ -33,8 +33,8 @@ def scan_input_files(input_dir: str) -> list[dict]:
     tasks = []
     map_id = 0
 
-    # Support multiple input files
-    for file_path in sorted(glob.glob(os.path.join(input_dir, "*"))):
+    # Support multiple input files (text only — skip archives)
+    for file_path in sorted(glob.glob(os.path.join(input_dir, "*.txt"))):
         if not os.path.isfile(file_path):
             continue
 

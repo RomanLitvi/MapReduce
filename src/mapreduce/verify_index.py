@@ -29,7 +29,7 @@ def build_naive_index(input_dir: str) -> dict[str, dict[str, int]]:
     index: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     doc_count = 0
 
-    for file_path in sorted(glob.glob(os.path.join(input_dir, "*"))):
+    for file_path in sorted(glob.glob(os.path.join(input_dir, "*.txt"))):
         if not os.path.isfile(file_path):
             continue
         with open(file_path, "r", encoding="utf-8", errors="replace") as f:

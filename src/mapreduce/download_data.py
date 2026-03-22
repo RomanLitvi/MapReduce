@@ -212,6 +212,11 @@ def download_large(output_dir: str, max_size_gb: float = 0):
                     if max_bytes and bytes_written >= max_bytes:
                         break
 
+    # Remove the bz2 archive — only wikipedia.txt should remain in input dir
+    if os.path.exists(dump_path):
+        os.remove(dump_path)
+        print(f"Removed archive: {dump_path}")
+
     size = os.path.getsize(corpus_path)
     print(f"Done: {doc_count:,} articles, {size / (1024**3):.2f} GB")
     print(f"Saved to: {corpus_path}")

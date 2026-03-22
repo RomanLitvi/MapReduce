@@ -55,7 +55,7 @@ def main():
     map_id = 0
     total_input_size = 0
 
-    for file_path in sorted(glob.glob(os.path.join(args.input, "*"))):
+    for file_path in sorted(glob.glob(os.path.join(args.input, "*.txt"))):
         if not os.path.isfile(file_path):
             continue
 
