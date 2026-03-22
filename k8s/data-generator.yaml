@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: generator
-          image: mapreduce-index:latest
+          image: litvinchukroman/mapreduce-index:latest
           command: ["python", "generate_test_data.py", "--size-gb", "80", "--output", "/data/input/corpus.txt"]
           resources:
             requests:

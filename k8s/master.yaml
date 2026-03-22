@@ -11,7 +11,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: master
-          image: mapreduce-index:latest
+          image: litvinchukroman/mapreduce-index:latest
           env:
             - name: ROLE
               value: "master"

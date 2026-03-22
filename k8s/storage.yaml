@@ -13,7 +13,7 @@ spec:
     - ReadWriteMany  # Required: multiple pods read/write simultaneously
   resources:
     requests:
-      storage: 200Gi  # 80GB input + intermediate + output
+      storage: 50Gi  # 80GB input + intermediate + output
   # storageClassName: nfs  # Uncomment for NFS provisioner
   # storageClassName: standard  # GKE
   # storageClassName: gp2  # EKS with EFS

@@ -15,7 +15,7 @@ spec:
       restartPolicy: OnFailure
       containers:
         - name: reducer
-          image: mapreduce-index:latest
+          image: litvinchukroman/mapreduce-index:latest
           env:
             - name: ROLE
               value: "reducer"
